@@ -6,9 +6,10 @@ services:
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: mydatabase
+      POSTGRES_DB: projetodb
     volumes:
       - ./create.sql:/docker-entrypoint-initdb.d/create.sql
+      - ./postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
 
@@ -18,3 +19,6 @@ services:
       - ./script.js:/app/script.js
     working_dir: /app
     command: ["node", "script.js"]
+
+volumes:
+  postgres_data:
