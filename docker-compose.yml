@@ -2,23 +2,11 @@ version: '3'
 
 services:
   postgres:
-    image: postgres:latest
+    image: "postgres:14-alpine"
+    restart: always
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: projetodb
-    volumes:
-      - ./create.sql:/docker-entrypoint-initdb.d/create.sql
-      - ./postgres_data:/var/lib/postgresql/data
+      POSTGRES_DB: universidade
     ports:
       - "5432:5432"
-
-  node:
-    image: node:latest
-    volumes:
-      - ./script.js:/app/script.js
-    working_dir: /app
-    command: ["node", "script.js"]
-
-volumes:
-  postgres_data:
