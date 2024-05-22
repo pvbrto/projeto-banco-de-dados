@@ -29,6 +29,23 @@ async function tableExists(tableName) {
   return result.exists;
 }
 
+var tablesToPopulate = []
+
+
+async function populateDepartamento() {
+    const departmentCount = await connection.one(`
+    SELECT COUNT(*) FROM departamento;
+`);
+
+if (parseInt(departmentCount.count) === 0) {
+  await create(`INSERT INTO departamento (nome) VALUES
+    ('Engenharia Elétrica'),
+    ('Ciências da Computação');`);
+}
+
+console.log("Populando tabela DEPARTAMENTO com sucesso!");
+}
+
 async function populateProfessor(departmentCount) {
   for (let i = 1; i <= departmentCount; i++) {
     const professorCount = await connection.one(
@@ -190,11 +207,144 @@ async function populateAlunos() {
   console.log("Populando tabela ALUNO com sucesso!");
 }
 
+async function populateHistoricoAluno() {
+    // Pegue a quantidade de alunos existentes
+    const alunos = await connection.many(`
+          SELECT id, nome, RA, curso_id, semestre FROM aluno
+      `);
+  
+    if (alunos.length === 0) {
+      console.log("Não há alunos para processar.");
+      return;
+    }
+  
+    // Processa todos os alunos
+    for (const aluno of alunos) {
+      // Insere disciplinas de todos os semestres até o semestre atual do aluno
+      for (let semestre = 1; semestre <= aluno.semestre; semestre++) {
+        const disciplinas = await connection.many(`
+                SELECT disciplina_id FROM matriz_curricular WHERE curso_id = ${aluno.curso_id} AND semestre = ${semestre}
+            `);
+        for (const disciplina of disciplinas) {
+          const ano = 2022 + Math.floor((semestre - 1) / 2);
+          const nota = (Math.random() * 10).toFixed(1); // Nota entre 0 e 10 com um decimal
+          await create(`
+                    INSERT INTO historico_aluno (aluno_id, disciplina_id, semestre, ano, nota)
+                    VALUES (${aluno.id}, ${disciplina.disciplina_id}, ${semestre}, ${ano}, ${nota});
+                `);
+        }
+      }
+    }
+  
+    console.log("Populando tabela HISTORICO_ALUNO com sucesso!");
+  }
+  
+  async function populateTCC() {
+    const tccNames = {
+      engenharia_eletrica: [
+        "Otimização de Sistemas Elétricos de Potência",
+        "Desenvolvimento de Fontes de Energia Renovável",
+        "Automação de Processos Industriais"
+      ],
+      ciencia_computacao: [
+        "Algoritmos de Aprendizado de Máquina",
+        "Sistemas Distribuídos e Computação em Nuvem",
+        "Segurança da Informação e Criptografia"
+      ]
+    };
+  
+    // Função para obter um nome aleatório de TCC
+    function getRandomName(names) {
+      const index = Math.floor(Math.random() * names.length);
+      return names.splice(index, 1)[0];
+    }
+  
+    // Inserindo TCCs do curso 1 (Engenharia Elétrica)
+    let nomeTCC = getRandomName(tccNames.engenharia_eletrica);
+    await create(`
+      INSERT INTO tcc (nome, orientador_id)
+      VALUES ('${nomeTCC}', ${Math.floor(Math.random() * 3 + 1)});
+    `);
+  
+    // Inserindo TCCs do curso 2 (Ciência da Computação)
+    for (let i = 0; i < 2; i++) {
+      nomeTCC = getRandomName(tccNames.ciencia_computacao);
+      await create(`
+        INSERT INTO tcc (nome, orientador_id)
+        VALUES ('${nomeTCC}', ${Math.floor(Math.random() * 3 + 4)});
+      `);
+    }
+  
+    console.log("TCCs inseridos com sucesso!");
+  
+  }
+
+  async function populateAlunoTCC() {
+  
+    // Selecionar até 3 alunos do curso 1 (Engenharia Elétrica) que estejam no semestre 4 ou superior
+    const alunosCurso1 = await connection.many(`
+      SELECT id FROM aluno WHERE curso_id = 1 AND semestre >= 4 LIMIT 3
+    `);
+  
+    // Selecionar até 6 alunos do curso 2 (Ciência da Computação) que estejam no semestre 4 ou superior
+    const alunosCurso2 = await connection.many(`
+      SELECT id FROM aluno WHERE curso_id = 2 AND semestre >= 4 LIMIT 6
+    `);
+  
+    // Obter os IDs dos TCCs
+    const tccs = await connection.many(`
+      SELECT id FROM tcc
+    `);
+  
+    // Verificar se há TCCs suficientes
+    if (tccs.length < 3) {
+      console.log("Não há TCCs suficientes para associar aos alunos.");
+      return;
+    }
+  
+    // Associar alunos do curso 1 ao primeiro TCC
+    const tccCurso1 = tccs[0].id;
+    for (const aluno of alunosCurso1) {
+      await create(`
+        INSERT INTO aluno_tcc (aluno_id, tcc_id)
+        VALUES (${aluno.id}, ${tccCurso1})
+      `);
+    }
+  
+    // Associar alunos do curso 2 aos três últimos TCCs
+    const tccCurso2_1 = tccs[1].id;
+    const tccCurso2_2 = tccs[2].id;
+  
+
+  
+    // Distribuir os alunos do curso 2 entre os TCCs
+    const grupo1 = alunosCurso2.slice(0, 3);
+    const grupo2 = alunosCurso2.slice(3, 6);
+  
+    for (const aluno of grupo1) {
+      await create(`
+        INSERT INTO aluno_tcc (aluno_id, tcc_id)
+        VALUES (${aluno.id}, ${tccCurso2_1})
+      `);
+    }
+  
+    for (const aluno of grupo2) {
+      await create(`
+        INSERT INTO aluno_tcc (aluno_id, tcc_id)
+        VALUES (${aluno.id}, ${tccCurso2_2})
+      `);
+    }
+  
+    console.log("Associação dos alunos aos TCCs feita com sucesso!");
+  }
+  
 if (!(await tableExists("departamento"))) {
   await create(`CREATE TABLE departamento (
         id SERIAL PRIMARY KEY,
         nome TEXT NOT NULL
     );`);
+
+    tablesToPopulate.push("departamento");
 }
 
 if (!(await tableExists("professor"))) {
@@ -203,6 +353,8 @@ if (!(await tableExists("professor"))) {
         nome TEXT NOT NULL,
         departamento_id INTEGER REFERENCES departamento (id)
     );`);
+
+    tablesToPopulate.push("professor");
 }
 
 if (!(await tableExists("chefe_departamento"))) {
@@ -210,6 +362,7 @@ if (!(await tableExists("chefe_departamento"))) {
         departamento_id INTEGER REFERENCES departamento (id),
         chefe_id INTEGER REFERENCES professor (id)
     );`);
+
 }
 
 if (!(await tableExists("curso"))) {
@@ -218,6 +371,8 @@ if (!(await tableExists("curso"))) {
         nome TEXT NOT NULL,
         departamento_id INTEGER REFERENCES departamento (id)
     );`);
+
+    tablesToPopulate.push("curso");
 }
 
 if (!(await tableExists("disciplina"))) {
@@ -228,6 +383,8 @@ if (!(await tableExists("disciplina"))) {
         departamento_id INTEGER REFERENCES departamento (id),
         professor_id INTEGER REFERENCES professor (id)
     );`);
+
+    tablesToPopulate.push("disciplina");
 }
 
 if (!(await tableExists("matriz_curricular"))) {
@@ -236,6 +393,8 @@ if (!(await tableExists("matriz_curricular"))) {
         disciplina_id INTEGER REFERENCES disciplina (id),
         semestre INTEGER NOT NULL
     );`);
+
+    tablesToPopulate.push("matriz_curricular");
 }
 
 if (!(await tableExists("aluno"))) {
@@ -246,6 +405,8 @@ if (!(await tableExists("aluno"))) {
         curso_id INTEGER REFERENCES curso (id),
         semestre INTEGER NOT NULL
     );`);
+
+    tablesToPopulate.push("aluno");
 }
 
 if (!(await tableExists("historico_aluno"))) {
@@ -256,6 +417,8 @@ if (!(await tableExists("historico_aluno"))) {
         ano INTEGER NOT NULL,
         nota REAL NOT NULL
     );`);
+
+    tablesToPopulate.push("historico_aluno");
 }
 
 if (!(await tableExists("tcc"))) {
@@ -264,6 +427,8 @@ if (!(await tableExists("tcc"))) {
         nome TEXT NOT NULL,
         orientador_id INTEGER REFERENCES professor (id)
     );`);
+
+    tablesToPopulate.push("tcc");
 }
 
 if (!(await tableExists("aluno_tcc"))) {
@@ -271,29 +436,66 @@ if (!(await tableExists("aluno_tcc"))) {
         aluno_id INTEGER REFERENCES aluno (id),
         tcc_id INTEGER REFERENCES tcc (id)
     );`);
+
+    tablesToPopulate.push("aluno_tcc");
 }
 
 console.log("Tabelas criadas com sucesso!");
 
-// Insert initial data into departamento
-const departmentCount = await connection.one(`
-    SELECT COUNT(*) FROM departamento;
-`);
 
-if (parseInt(departmentCount.count) === 0) {
-  await create(`INSERT INTO departamento (nome) VALUES
-    ('Engenharia Elétrica'),
-    ('Ciências da Computação');`);
-}
+// await populateDepartamento();
 
-await populateProfessor(2);
+// await populateProfessor(2);
 
-await populateCursos();
+// await populateCursos();
 
-await populateDisciplinas();
+// await populateDisciplinas();
 
-await populateMatrizCurricular();
+// await populateMatrizCurricular();
 
-await populateAlunos();
+// await populateAlunos();
+
+// await populateHistoricoAluno();
+
+// await populateTCC();
+
+// await populateAlunoTCC();
+
+for (const tableName of tablesToPopulate) {
+    switch (tableName) {
+      case "departamento":
+        await populateDepartamento();
+        break;
+      case "professor":
+        await populateProfessor(2);
+        break;
+      case "chefe_departamento":
+        await populateChefeDepartamento();
+        break;
+      case "curso":
+        await populateCursos();
+        break;
+      case "disciplina":
+        await populateDisciplinas();
+        break;
+      case "matriz_curricular":
+        await populateMatrizCurricular();
+        break;
+      case "aluno":
+        await populateAlunos();
+        break;
+      case "historico_aluno":
+        await populateHistoricoAluno();
+        break;
+      case "tcc":
+        await populateTCC();
+        break;
+      case "aluno_tcc":
+        await populateAlunoTCC();
+        break;
+      default:
+        break;
+    }
+  }
 
 await connection.$pool.end();
