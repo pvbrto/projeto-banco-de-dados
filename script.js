@@ -212,32 +212,32 @@ async function populateHistoricoAluno() {
     const alunos = await connection.many(`
           SELECT id, nome, RA, curso_id, semestre FROM aluno
       `);
-  
+
     if (alunos.length === 0) {
-      console.log("Não há alunos para processar.");
-      return;
+        console.log("Não há alunos para processar.");
+        return;
     }
-  
+
     // Processa todos os alunos
     for (const aluno of alunos) {
-      // Insere disciplinas de todos os semestres até o semestre atual do aluno
-      for (let semestre = 1; semestre <= aluno.semestre; semestre++) {
-        const disciplinas = await connection.many(`
+        // Insere disciplinas de todos os semestres até o semestre atual do aluno
+        for (let semestre = 1; semestre <= aluno.semestre; semestre++) {
+            const disciplinas = await connection.many(`
                 SELECT disciplina_id FROM matriz_curricular WHERE curso_id = ${aluno.curso_id} AND semestre = ${semestre}
             `);
-        for (const disciplina of disciplinas) {
-          const ano = 2022 + Math.floor((semestre - 1) / 2);
-          const nota = (Math.random() * 10).toFixed(1); // Nota entre 0 e 10 com um decimal
-          await create(`
+            for (const disciplina of disciplinas) {
+                const ano = 2022 + Math.floor((semestre - 1) / 2);
+                const nota = (Math.random() * 6 + 4).toFixed(1); // Nota entre 0 e 10 com um decimal
+                await create(`
                     INSERT INTO historico_aluno (aluno_id, disciplina_id, semestre, ano, nota)
                     VALUES (${aluno.id}, ${disciplina.disciplina_id}, ${semestre}, ${ano}, ${nota});
                 `);
+            }
         }
-      }
     }
-  
+
     console.log("Populando tabela HISTORICO_ALUNO com sucesso!");
-  }
+}
   
   async function populateTCC() {
     const tccNames = {
@@ -463,39 +463,138 @@ console.log("Tabelas criadas com sucesso!");
 
 for (const tableName of tablesToPopulate) {
     switch (tableName) {
-      case "departamento":
-        await populateDepartamento();
-        break;
-      case "professor":
-        await populateProfessor(2);
-        break;
-      case "chefe_departamento":
-        await populateChefeDepartamento();
-        break;
-      case "curso":
-        await populateCursos();
-        break;
-      case "disciplina":
-        await populateDisciplinas();
-        break;
-      case "matriz_curricular":
-        await populateMatrizCurricular();
-        break;
-      case "aluno":
-        await populateAlunos();
-        break;
-      case "historico_aluno":
-        await populateHistoricoAluno();
-        break;
-      case "tcc":
-        await populateTCC();
-        break;
-      case "aluno_tcc":
-        await populateAlunoTCC();
-        break;
-      default:
-        break;
+        case "departamento":
+            await populateDepartamento();
+            break;
+        case "professor":
+            await populateProfessor(2);
+            break;
+        case "chefe_departamento":
+            await populateChefeDepartamento();
+            break;
+        case "curso":
+            await populateCursos();
+            break;
+        case "disciplina":
+            await populateDisciplinas();
+            break;
+        case "matriz_curricular":
+            await populateMatrizCurricular();
+            break;
+        case "aluno":
+            await populateAlunos();
+            break;
+        case "historico_aluno":
+            await populateHistoricoAluno();
+            break;
+        case "tcc":
+            await populateTCC();
+            break;
+        case "aluno_tcc":
+            await populateAlunoTCC();
+            break;
+        default:
+            break;
     }
-  }
+}
+
+console.log("\nSelect 01 - Histórico de alunos");
+const historico_alunos = await connection.query(`
+    SELECT a.nome AS nome_aluno
+    , a.ra AS ra_aluno
+    , d.codigo AS codigo_disciplina
+    , d.nome AS nome_disciplina
+    , ha.semestre
+    , ha.ano 
+    , ha.nota
+    FROM historico_aluno ha 
+    INNER JOIN disciplina d 
+      ON d.id = ha.disciplina_id 
+    INNER JOIN aluno a 
+      ON a.id = ha.aluno_id 
+    ORDER BY a.id, ha.semestre;
+`); 
+console.table(historico_alunos);
+
+console.log("\nSelect 02 - Histórico de disciplinas por professor");
+const historico_disciplinas = await connection.query(`
+    SELECT DISTINCT d.codigo AS codigo_disciplina
+    , d.nome AS nome_disciplina
+    , p.nome AS nome_professor
+    , ha.semestre 
+    , ha.ano
+    FROM historico_aluno ha 
+    INNER JOIN disciplina d 
+      ON d.id = ha.disciplina_id 
+    INNER JOIN professor p 
+      ON p.id = d.professor_id 
+    ORDER BY ha.ano, ha.semestre;
+`);
+console.table(historico_disciplinas);
+
+console.log("\nSelect 03 - Lista de alunos formados");
+const alunos_formados = await connection.query(`
+    WITH aluno_disciplinas AS (
+      SELECT aluno_id, disciplina_id
+      FROM historico_aluno
+      WHERE nota >= 5
+    ),
+    total_matriz_disciplinas AS (
+      SELECT COUNT(*) AS total_disciplinas
+      FROM matriz_curricular 
+      GROUP BY curso_id
+    ),
+    aluno_completou_disciplinas AS (
+      SELECT aluno_id, COUNT(*) AS disciplinas_completadas
+      FROM aluno_disciplinas
+      WHERE disciplina_id IN (SELECT disciplina_id FROM matriz_curricular)
+      GROUP BY aluno_id
+    )
+    SELECT DISTINCT a.id
+      , a.nome AS nome_aluno
+      , MAX(ha.ano) AS ano_formacao
+    FROM aluno a
+    INNER JOIN aluno_completou_disciplinas acd
+      ON a.id = acd.aluno_id
+    INNER JOIN total_matriz_disciplinas tmd
+      ON acd.disciplinas_completadas = tmd.total_disciplinas
+    INNER JOIN historico_aluno ha
+    ON ha.aluno_id = a.id
+    GROUP BY a.id
+    ORDER BY a.id;
+`);
+console.table(alunos_formados);
+
+console.log("\nSelect 04 - Lista de professores chefes de departamento");
+const lista_professores = await connection.query(`
+  SELECT p.id
+  , p.nome AS nome_professor
+  , d.id AS departamento_id
+  , d.nome AS nome_departamento
+  FROM chefe_departamento cd
+  INNER JOIN professor p
+    ON p.id = cd.chefe_id
+  INNER JOIN departamento d
+    ON d.id = cd.departamento_id;
+`);
+console.table(lista_professores);
+
+console.log("\nSelect 05 - Alunos e TCCs");
+const grupos_tcc = await connection.query(`
+    SELECT a.nome AS nome_aluno
+    , a.ra AS ra_aluno
+    , a.curso_id
+    , a.semestre 
+    , t.nome AS nome_tcc
+    , p.nome AS orientador
+    FROM aluno_tcc at2
+    INNER JOIN aluno a
+      ON a.id = at2.aluno_id
+    INNER JOIN tcc t
+      ON t.id = at2.tcc_id
+    INNER JOIN professor p
+      ON p.id = t.orientador_id;
+`);
+console.table(grupos_tcc);
 
 await connection.$pool.end();
