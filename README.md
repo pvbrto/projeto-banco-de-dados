@@ -2,7 +2,7 @@
 
 Este projeto cria e popula um banco de dados de uma universidade utilizando PostgreSQL. O banco de dados contém tabelas para departamentos, professores, cursos, disciplinas, alunos, histórico de alunos, TCCs e a associação de alunos aos TCCs.
 
-##Integrantes
+## Integrantes
 
 Guilherme F. de Carvalho - 22.122.016-3 <br>
 Livia Lumi Miyabara - 22.122.045-2 <br>
