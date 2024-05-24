@@ -100,9 +100,9 @@ npm run exec
 
 ![DiagramaCompleto](/Images/DiagramaCompleto.jpg)
 ![MER Aluno](/Images/MER_Aluno.jpg)
-![MER Curso](/Images/MER_Curso.jpg.jpg)
-![MER Departamento](/Images/MER_Departamento.jpg.jpg)
-![MER Disciplina](/Images/MER_Disciplina.jpg.jpg)
+![MER Curso](/Images/MER_Curso.jpg)
+![MER Departamento](/Images/MER_Departamento.jpg)
+![MER Disciplina](/Images/MER_Disciplina.jpg)
 ![MER Professor](/Images/MER_Professor.jpg)
 ![MER TCC](/Images/MER_TCC.jpg)
 
