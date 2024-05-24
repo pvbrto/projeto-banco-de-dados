@@ -83,7 +83,7 @@ O script npm run exec também executa várias consultas de exemplo para demonstr
 
 ## Resetar Dados do Banco
 
-Quando o script é executado, cria as tabelasm, popula os dados e apresenta as consultas. Caso o script seja executado novamente, a base de dados não irá mudar, para observar valores diferentes realize:
+Quando o script é executado, cria as tabelas, popula os dados e apresenta as consultas. Caso o script seja executado novamente, a base de dados não irá mudar, para observar valores diferentes realize:
 
 ```sh
 docker-compose down
