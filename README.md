@@ -1,6 +1,19 @@
 # Projeto Banco de Dados - FEI
 
-Este projeto cria e popula um banco de dados de uma universidade utilizando PostgreSQL. O banco de dados contém tabelas para departamentos, professores, cursos, disciplinas, alunos, histórico de alunos, TCCs e a associação de alunos aos TCCs.
+Este projeto cria e popula um banco de dados de uma universidade utilizando PostgreSQL. O banco de dados contém tabelas para departamentos, professores, cursos, disciplinas, alunos, histórico de alunos, TCCs e a associação de alunos aos 
+
+## Diagrama MR
+
+![DiagramaCompleto](/Images/DiagramaCompleto.jpg)
+
+## Diagrama MER
+
+![MER Aluno](/Images/MER_Aluno.jpg)
+![MER Curso](/Images/MER_Curso.jpg)
+![MER Departamento](/Images/MER_Departamento.jpg)
+![MER Disciplina](/Images/MER_Disciplina.jpg)
+![MER Professor](/Images/MER_Professor.jpg)
+![MER TCC](/Images/MER_TCC.jpg)
 
 ## Pré-requisitos
 
@@ -96,14 +109,6 @@ npm run exec
 - Verifique se as portas necessárias estão livres (5432 para PostgreSQL por padrão).
 - Verifique as configurações de conexão no arquivo index.js para garantir que correspondem às configurações do contêiner PostgreSQL.
 
-## Diagrama MER
 
-![DiagramaCompleto](/Images/DiagramaCompleto.jpg)
-![MER Aluno](/Images/MER_Aluno.jpg)
-![MER Curso](/Images/MER_Curso.jpg)
-![MER Departamento](/Images/MER_Departamento.jpg)
-![MER Disciplina](/Images/MER_Disciplina.jpg)
-![MER Professor](/Images/MER_Professor.jpg)
-![MER TCC](/Images/MER_TCC.jpg)
 
 
