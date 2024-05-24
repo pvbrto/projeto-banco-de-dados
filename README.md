@@ -96,4 +96,14 @@ npm run exec
 - Verifique se as portas necessárias estão livres (5432 para PostgreSQL por padrão).
 - Verifique as configurações de conexão no arquivo index.js para garantir que correspondem às configurações do contêiner PostgreSQL.
 
+## Diagrama MER
+
+![DiagramaCompleto](/Images/DiagramaCompleto.jpg)
+![MER Aluno](/Images/MER_Aluno.jpg)
+![MER Curso](/Images/MER_Curso.jpg.jpg)
+![MER Departamento](/Images/MER_Departamento.jpg.jpg)
+![MER Disciplina](/Images/MER_Disciplina.jpg.jpg)
+![MER Professor](/Images/MER_Professor.jpg)
+![MER TCC](/Images/MER_TCC.jpg)
+
 
